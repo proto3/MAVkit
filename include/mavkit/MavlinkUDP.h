@@ -1,11 +1,11 @@
 #ifndef MAVLINK_UDP_H
 #define MAVLINK_UDP_H
 
-#include "mavlink_headers/common/mavlink.h"
+#include <mavkit/MavMessengerInterface.h>
 #include <string>
 #include <arpa/inet.h>
 
-class MavlinkUDP
+class MavlinkUDP : public MavMessengerInterface
 {
 public:
     MavlinkUDP(std::string target_ip, int target_port, int local_port);
@@ -26,4 +26,3 @@ private:
 };
 
 #endif
-

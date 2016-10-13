@@ -32,7 +32,7 @@ MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port, int local_port)
     if(bind(sock,(struct sockaddr *)&locAddr, sizeof(struct sockaddr)) == -1)
     {
         close(sock);
-        throw std::logic_error(std::string("error bind failed") + strerror(errno));
+        throw std::logic_error(std::string("error bind failed: ") + strerror(errno));
     }
 
     //make socket non blocking
