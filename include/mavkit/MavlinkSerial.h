@@ -4,9 +4,6 @@
 #include <mavkit/MavMessengerInterface.h>
 #include <string>
 
-// The maximum packet length is 263 bytes for full payload.
-#define BUFFER_LENGTH 512
-
 class MavlinkSerial : public MavMessengerInterface
 {
 public:
@@ -19,12 +16,10 @@ public:
 
 private:
     mavlink_status_t status;
-    int fd, first_byte, nb_bytes;
-    uint8_t read_buffer[BUFFER_LENGTH];
+    int fd, index, first_free;
 
-    void fill_read_buffer();
-    bool parse_buffer(mavlink_message_t &message);
-    // bool write_buffer(const char* buffer, size_t length);
+    static const int buffer_length = 256;
+    uint8_t read_buffer[buffer_length];
 };
 
 #endif

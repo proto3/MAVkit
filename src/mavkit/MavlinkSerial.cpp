@@ -1,17 +1,16 @@
 #include <mavkit/MavlinkSerial.h>
-#include <stdexcept>
-#include <iostream>
 
-// #include <cstdlib>
-#include <stdio.h>   // Standard input/output definitions
-#include <unistd.h>  // UNIX standard function definitions
-#include <fcntl.h>   // File control definitions
-#include <termios.h> // POSIX terminal control definitions
+#include <iostream>
+#include <stdexcept>
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
 
 //----------------------------------------------------------------------------//
 MavlinkSerial::MavlinkSerial(std::string port , int baudrate)
-: nb_bytes(0),
-  first_byte(0)
+: first_free(0),
+  index(0)
 {
     fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
 
@@ -65,8 +64,8 @@ MavlinkSerial::MavlinkSerial(std::string port , int baudrate)
 
     // One input byte is enough to return from read()
     // Inter-character timer off
-    config.c_cc[VMIN]  = 0;
-    config.c_cc[VTIME] = 0;
+    config.c_cc[VMIN]  = 255;
+    config.c_cc[VTIME] = 1;
 
     // Get the current options for the port
     ////struct termios options;
@@ -126,51 +125,35 @@ bool MavlinkSerial::is_valid_file(const char* path)
 //----------------------------------------------------------------------------//
 bool MavlinkSerial::receive_message(mavlink_message_t &msg)
 {
-    fill_read_buffer();
-
-    while(nb_bytes > 0)
-    {
-        if(parse_buffer(msg))
-            return true;
-
-        fill_read_buffer();
-    }
-    return false;
-}
-//----------------------------------------------------------------------------//
-void MavlinkSerial::fill_read_buffer()
-{
-    if(nb_bytes == 0)
-    {
-        first_byte = 0;
-        nb_bytes = read(fd, read_buffer, BUFFER_LENGTH);
-
-        if(nb_bytes == -1)
-            throw std::logic_error("Unable to read on serial port.");
-    }
-}
-//----------------------------------------------------------------------------//
-bool MavlinkSerial::parse_buffer(mavlink_message_t &msg)
-{
     mavlink_status_t status;
 
-    while(nb_bytes > 0)
+    while(true)
     {
-        uint8_t current_byte = read_buffer[first_byte];
-        first_byte++;
-        nb_bytes--;
-
-        if(mavlink_parse_char(MAVLINK_COMM_0, current_byte, &msg, &status))
+        if(index >= first_free)
         {
-            return true;
+            index = 0;
+            first_free = read(fd, read_buffer, buffer_length);
+
+            if(first_free == -1)
+                throw std::logic_error("Unable to read on serial port.");
+        }
+
+        char str[8];
+        int n = 0;
+        std::string a;
+        while(index < first_free)
+        {
+            uint8_t current_byte = read_buffer[index];
+            index++;
+            if(mavlink_parse_char(MAVLINK_COMM_0, current_byte, &msg, &status))
+                return true;
         }
     }
-    return false;
 }
 //----------------------------------------------------------------------------//
 bool MavlinkSerial::send_message(mavlink_message_t &msg)
 {
-    uint8_t buf[BUFFER_LENGTH];
+    uint8_t buf[buffer_length];
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
 
     int bytes_sent = write(fd, buf, len);

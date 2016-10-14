@@ -1,16 +1,21 @@
-#include <iostream>
-#include <unistd.h>
-
 #include <mavkit/MavMessengerInterface.h>
 #include <mavkit/MavlinkUDP.h>
 #include <mavkit/MavlinkSerial.h>
 
+#include <iostream>
+#include <chrono>
+#include <fstream>
+#include <cmath>
+#include <unistd.h>
+
 #define BUFFER_LENGTH 512
 #define SYS_ID 1
-#define COMP_ID 1
+#define COMP_ID 2
+
+using namespace std;
+using namespace chrono;
 
 void process_mavlink_message(mavlink_message_t &message);
-
 //----------------------------------------------------------------------------//
 void usage()
 {
@@ -46,24 +51,41 @@ int main(int argc, char* argv[])
     uint16_t len;
     while(true)
     {
+        //get uptime in ms
+        // std::chrono::milliseconds uptime(0u);
+        // uint32_t uptime_ms = 0;
+        // if(std::ifstream("/proc/uptime", std::ios::in) >> uptime_ms)
+        //   uptime = std::chrono::milliseconds(static_cast<unsigned long long>(uptime_ms));
+
         //SEND-----------------------------------------//
         //MSG1
         mavlink_msg_heartbeat_pack(SYS_ID, COMP_ID, &msg, MAV_TYPE_HELICOPTER, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
         len = mavlink_msg_to_send_buffer(buf, &msg);
         mavlink->send_message(msg);
-
-        //MSG2
-        mavlink_msg_mission_set_current_pack(SYS_ID, COMP_ID, &msg, 1, 2, 1);
-        len = mavlink_msg_to_send_buffer(buf, &msg);
-        mavlink->send_message(msg);
-
-        //MSG3
-        //...
+        //
+        // //MSG2
+        // if(step < 5.0 || step > 10.0)
+        //     mavlink_msg_mission_set_current_pack(SYS_ID, COMP_ID, &msg, 1, 2, 1);
+        // else
+        //     mavlink_msg_mission_set_current_pack(SYS_ID, COMP_ID, &msg, 1, 2, 0);
+        // len = mavlink_msg_to_send_buffer(buf, &msg);
+        // mavlink->send_message(msg);
+        //
+        // //MSG3
+        // mavlink_msg_named_value_float_pack(SYS_ID, COMP_ID, &msg, uptime_ms, "depth", 3.0);
+        // len = mavlink_msg_to_send_buffer(buf, &msg);
+        // mavlink->send_message(msg);
+        //
+        // //MSG4
+        // mavlink_msg_local_position_ned_pack(SYS_ID, COMP_ID, &msg, uptime_ms, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        // len = mavlink_msg_to_send_buffer(buf, &msg);
+        // mavlink->send_message(msg);
 
         //RECEIVE-------------------------------------//
         while(mavlink->receive_message(msg))
             process_mavlink_message(msg);
 
+        //TODO use threads to not slow down reception
         usleep(100000);
     }
 
@@ -80,13 +102,13 @@ void process_mavlink_message(mavlink_message_t &msg)
             mavlink_msg_heartbeat_decode(&msg, &heartbeat);
             std::cout << "heartbeat" << std::endl;
 
-            //access message specific fields
-            std::cout << "    type:            "            << (uint)heartbeat.type << std::endl;
-            std::cout << "    autopilot:       "       << (uint)heartbeat.autopilot << std::endl;
-            std::cout << "    base_mode:       "       << (uint)heartbeat.base_mode << std::endl;
-            std::cout << "    custom_mode:     "     << (uint)heartbeat.custom_mode << std::endl;
-            std::cout << "    system_status:   "   << (uint)heartbeat.system_status << std::endl;
-            std::cout << "    mavlink_version: " << (uint)heartbeat.mavlink_version << std::endl;
+            // access message specific fields
+            // std::cout << "    type:            "            << (uint)heartbeat.type << std::endl;
+            // std::cout << "    autopilot:       "       << (uint)heartbeat.autopilot << std::endl;
+            // std::cout << "    base_mode:       "       << (uint)heartbeat.base_mode << std::endl;
+            // std::cout << "    custom_mode:     "     << (uint)heartbeat.custom_mode << std::endl;
+            // std::cout << "    system_status:   "   << (uint)heartbeat.system_status << std::endl;
+            // std::cout << "    mavlink_version: " << (uint)heartbeat.mavlink_version << std::endl;
             break;
         }
         case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
