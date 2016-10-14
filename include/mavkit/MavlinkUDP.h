@@ -11,12 +11,8 @@ public:
     MavlinkUDP(std::string target_ip, int target_port, int local_port);
     ~MavlinkUDP();
 
-    //return true if the message is sent
-    //false is an has error occured
+    static bool is_valid_ip(const char* ip);
     bool send_message(mavlink_message_t &msg);
-
-    //return true when a message is received
-    //false if no message
     bool receive_message(mavlink_message_t &msg);
 
 private:

@@ -13,6 +13,7 @@ public:
     MavlinkSerial(std::string port, int baudrate);
     ~MavlinkSerial();
 
+    static bool is_valid_file(const char* path);
     bool send_message(mavlink_message_t &msg);
     bool receive_message(mavlink_message_t &msg);
 

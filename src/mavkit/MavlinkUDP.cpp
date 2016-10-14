@@ -1,5 +1,6 @@
 #include <mavkit/MavlinkUDP.h>
 #include <stdexcept>
+#include <iostream>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/time.h>
@@ -46,11 +47,20 @@ MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port, int local_port)
     gcAddr.sin_family = AF_INET;
     gcAddr.sin_port = htons(target_port);
     gcAddr.sin_addr.s_addr = inet_addr(target_ip.c_str());
+
+    std::cout << "to   " << target_ip << ":" << target_port << std::endl;
+    std::cout << "from 127.0.0.1" << ":" << local_port << std::endl;
 }
 //----------------------------------------------------------------------------//
 MavlinkUDP::~MavlinkUDP()
 {
     close(sock);
+}
+//----------------------------------------------------------------------------//
+bool MavlinkUDP::is_valid_ip(const char* ip)
+{
+    char* dst[INET_ADDRSTRLEN];
+    return inet_pton(AF_INET, ip, dst) == 1;
 }
 //----------------------------------------------------------------------------//
 bool MavlinkUDP::send_message(mavlink_message_t &msg)
@@ -75,6 +85,8 @@ bool MavlinkUDP::receive_message(mavlink_message_t &msg)
     {
         if(mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status))
         {
+            if(i < recsize-1)
+                std::cout << "WARNING : udp packet bytes are wasted." << std::endl;
             return true;
         }
     }

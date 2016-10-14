@@ -1,5 +1,6 @@
 #include <mavkit/MavlinkSerial.h>
 #include <stdexcept>
+#include <iostream>
 
 // #include <cstdlib>
 #include <stdio.h>   // Standard input/output definitions
@@ -13,7 +14,6 @@ MavlinkSerial::MavlinkSerial(std::string port , int baudrate)
   first_byte(0)
 {
     fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
-    // fd = open(port.c_str(), O_RDWR| O_NONBLOCK | O_NDELAY);
 
     if(fd == -1)
         throw std::logic_error(std::string("cannot open ") + port + ": " + strerror(errno));
@@ -110,11 +110,18 @@ MavlinkSerial::MavlinkSerial(std::string port , int baudrate)
     // Finally, apply the configuration
     if(tcsetattr(fd, TCSAFLUSH, &config) < 0)
         throw std::logic_error("Cannot set file descriptor configuration");
+
+    std::cout << "Connected to " << port << std::endl;
 }
 //----------------------------------------------------------------------------//
 MavlinkSerial::~MavlinkSerial()
 {
     close(fd);
+}
+//----------------------------------------------------------------------------//
+bool MavlinkSerial::is_valid_file(const char* path)
+{
+    return access(path, F_OK) != -1;
 }
 //----------------------------------------------------------------------------//
 bool MavlinkSerial::receive_message(mavlink_message_t &msg)

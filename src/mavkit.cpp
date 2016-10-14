@@ -12,11 +12,34 @@
 void process_mavlink_message(mavlink_message_t &message);
 
 //----------------------------------------------------------------------------//
+void usage()
+{
+    std::cout << "usage: mavkit link" << std::endl;
+    std::cout << "  link: IP address or a tty path." << std::endl;
+}
+//----------------------------------------------------------------------------//
 int main(int argc, char* argv[])
 {
-    // MavMessengerInterface* mavlink = new MavlinkUDP("127.0.0.1", 14550, 14553);
-    MavMessengerInterface* mavlink = new MavlinkSerial("/dev/ttyUSB0", 57600);
-    std::cout << "Ready" << std::endl;
+    if(argc < 2)
+    {
+        usage();
+        return 0;
+    }
+
+    MavMessengerInterface* mavlink;
+    if(MavlinkUDP::is_valid_ip(argv[1]))
+    {
+        mavlink = new MavlinkUDP(argv[1], 14550, 14551);
+    }
+    else if(MavlinkSerial::is_valid_file(argv[1]))
+    {
+        mavlink = new MavlinkSerial(argv[1], 57600);
+    }
+    else
+    {
+        usage();
+        return 0;
+    }
 
     mavlink_message_t msg;
     uint8_t buf[BUFFER_LENGTH];
@@ -41,7 +64,7 @@ int main(int argc, char* argv[])
         while(mavlink->receive_message(msg))
             process_mavlink_message(msg);
 
-        usleep(1000000);
+        usleep(100000);
     }
 
     return 0;
