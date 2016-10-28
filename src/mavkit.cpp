@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cmath>
 #include <unistd.h>
+#include <thread>
 
 #define BUFFER_LENGTH 512
 #define SYS_ID 1
@@ -16,6 +17,11 @@ using namespace std;
 using namespace chrono;
 
 void process_mavlink_message(mavlink_message_t &message);
+void reader_loop();
+void writer_loop();
+
+MavMessengerInterface* mavlink;
+
 //----------------------------------------------------------------------------//
 void usage()
 {
@@ -31,7 +37,6 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    MavMessengerInterface* mavlink;
     if(MavlinkUDP::is_valid_ip(argv[1]))
     {
         mavlink = new MavlinkUDP(argv[1], 14550, 14551);
@@ -46,6 +51,17 @@ int main(int argc, char* argv[])
         return 0;
     }
 
+    std::thread read_thread(reader_loop);
+    std::thread write_thread(writer_loop);
+
+    read_thread.join();
+    write_thread.join();
+
+    return 0;
+}
+//----------------------------------------------------------------------------//
+void writer_loop()
+{
     mavlink_message_t msg;
     uint8_t buf[BUFFER_LENGTH];
     uint16_t len;
@@ -57,7 +73,6 @@ int main(int argc, char* argv[])
         // if(std::ifstream("/proc/uptime", std::ios::in) >> uptime_ms)
         //   uptime = std::chrono::milliseconds(static_cast<unsigned long long>(uptime_ms));
 
-        //SEND-----------------------------------------//
         //MSG1
         mavlink_msg_heartbeat_pack(SYS_ID, COMP_ID, &msg, MAV_TYPE_HELICOPTER, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
         len = mavlink_msg_to_send_buffer(buf, &msg);
@@ -81,15 +96,20 @@ int main(int argc, char* argv[])
         // len = mavlink_msg_to_send_buffer(buf, &msg);
         // mavlink->send_message(msg);
 
-        //RECEIVE-------------------------------------//
-        while(mavlink->receive_message(msg))
-            process_mavlink_message(msg);
-
-        //TODO use threads to not slow down reception
-        usleep(100000);
+        usleep(1000000);
     }
-
-    return 0;
+}
+//----------------------------------------------------------------------------//
+void reader_loop()
+{
+    mavlink_message_t msg;
+    while(true)
+    {
+        while(mavlink->receive_message(msg))
+        {
+            process_mavlink_message(msg);
+        }
+    }
 }
 //----------------------------------------------------------------------------//
 void process_mavlink_message(mavlink_message_t &msg)
