@@ -10,15 +10,19 @@ make
 ```
 ## how to use it ?
 
-Once you've built it, simply run **./mavkit**
+Once you've built it, you can run MAVKit with either a serial device path or an IP.
 
-Options are not implemented yet, please look into the main code to choose between UDP and serial implementation.
+```shell
+# Example
+./mavkit 192.168.1.xxx
+# or
+./mavkit /dev/ttyUSB0
+```
+***Note: in IP mode the port is not accessible yet through command line, please look at MavlinkUDP constructor.***
 
-The UDP and Serial constructors allow you to choose which IP, port or UART you want to speak with.
-
+This is what messages display looks like. Only a few messages are handled, but one can add new messages easily.
 
 ```
-lucas@lucas-desktop:~/projects/mavlink_utils/mavkit/build$ ./mavkit
 Ready
 heartbeat
     type:            6
