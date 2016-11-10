@@ -26,7 +26,7 @@ MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port, int local_port)
     memset(&locAddr, 0, sizeof(struct sockaddr_in));
     locAddr.sin_family = AF_INET;
     locAddr.sin_port = htons(local_port);
-    locAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    locAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     //bind socket to local_port
     sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -49,7 +49,7 @@ MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port, int local_port)
     gcAddr.sin_addr.s_addr = inet_addr(target_ip.c_str());
 
     std::cout << "to   " << target_ip << ":" << target_port << std::endl;
-    std::cout << "from 127.0.0.1" << ":" << local_port << std::endl;
+    std::cout << "from " << inet_ntoa(locAddr.sin_addr) << ":" << local_port << std::endl;
 }
 //----------------------------------------------------------------------------//
 MavlinkUDP::~MavlinkUDP()
