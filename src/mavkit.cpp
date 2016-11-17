@@ -166,6 +166,14 @@ void process_mavlink_message(mavlink_message_t &msg)
             std::cout << "named value float" << std::endl;
             break;
         }
+        case MAVLINK_MSG_ID_STATUSTEXT:
+        {
+            mavlink_statustext_t statustext;
+            mavlink_msg_statustext_decode(&msg, &statustext);
+            std::cout << "status text" << std::endl;
+            std::cout << statustext.text << std::endl;
+            break;
+        }
         default:
         {
             std::cout << "Unsupported packet -> ";
