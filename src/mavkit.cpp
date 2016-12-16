@@ -1,6 +1,7 @@
 #include <mavkit/MavMessengerInterface.h>
 #include <mavkit/MavlinkUDP.h>
 #include <mavkit/MavlinkSerial.h>
+#include <mavkit/MavlinkFile.h>
 
 #include <iostream>
 #include <chrono>
@@ -26,7 +27,7 @@ MavMessengerInterface* mavlink;
 void usage()
 {
     std::cout << "usage: mavkit link" << std::endl;
-    std::cout << "  link: IP address or a tty path." << std::endl;
+    std::cout << "  link: IP address, tty path or log file." << std::endl;
 }
 //----------------------------------------------------------------------------//
 int main(int argc, char* argv[])
@@ -41,9 +42,13 @@ int main(int argc, char* argv[])
     {
         mavlink = new MavlinkUDP(argv[1], 14550, 14551);
     }
-    else if(MavlinkSerial::is_valid_file(argv[1]))
+    else if(MavlinkSerial::is_valid_tty(argv[1]))
     {
         mavlink = new MavlinkSerial(argv[1], 57600);
+    }
+    else if(MavlinkFile::is_valid_file(argv[1]))
+    {
+        mavlink = new MavlinkFile(argv[1]);
     }
     else
     {
