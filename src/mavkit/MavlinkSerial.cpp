@@ -118,9 +118,10 @@ MavlinkSerial::~MavlinkSerial()
     close(fd);
 }
 //----------------------------------------------------------------------------//
-bool MavlinkSerial::is_valid_file(const char* path)
+bool MavlinkSerial::is_valid_tty(const char* path)
 {
-    return access(path, F_OK) != -1;
+	std::string cPath = path;
+    return cPath.find("/dev/tty") != std::string::npos;
 }
 //----------------------------------------------------------------------------//
 bool MavlinkSerial::receive_message(mavlink_message_t &msg)
