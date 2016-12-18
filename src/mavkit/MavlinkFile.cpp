@@ -6,9 +6,9 @@
 #include <unistd.h>
 
 //----------------------------------------------------------------------------//
-MavlinkFile::MavlinkFile(std::string file_path) :
-	first_free(0),
-	index(0)
+MavlinkFile::MavlinkFile(std::string file_path)
+: first_free(0),
+  index(0)
 {
     fd = open(file_path.c_str(), O_RDONLY);
 
@@ -55,8 +55,7 @@ bool MavlinkFile::receive_message(mavlink_message_t &msg)
 //----------------------------------------------------------------------------//
 bool MavlinkFile::send_message(mavlink_message_t &msg)
 {
-	// Should not be called
-	return false;
+    // Should not be called
+    return false;
 }
 //----------------------------------------------------------------------------//
-

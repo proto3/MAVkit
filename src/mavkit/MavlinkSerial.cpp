@@ -120,8 +120,14 @@ MavlinkSerial::~MavlinkSerial()
 //----------------------------------------------------------------------------//
 bool MavlinkSerial::is_valid_tty(const char* path)
 {
-	std::string cPath = path;
-    return cPath.find("/dev/tty") != std::string::npos;
+    bool ret = true;
+    int fd = open(path, O_RDWR | O_NOCTTY);
+
+    if(fd == -1 || !isatty(fd))
+        ret = false;
+
+    close(fd);
+    return ret;
 }
 //----------------------------------------------------------------------------//
 bool MavlinkSerial::receive_message(mavlink_message_t &msg)
