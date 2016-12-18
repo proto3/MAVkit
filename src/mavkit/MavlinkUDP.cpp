@@ -101,9 +101,11 @@ bool MavlinkUDP::send_message(mavlink_message_t &msg)
 {
     uint8_t buf[512];
     uint16_t len, bytes_sent;
-
     len = mavlink_msg_to_send_buffer(buf, &msg);
+
+    mutex.lock();
     bytes_sent = sendto(sock, buf, len, 0, (struct sockaddr*)&gcAddr, sizeof(struct sockaddr_in));
+    mutex.unlock();
 
     return len == bytes_sent;
 }

@@ -62,7 +62,10 @@ void MavlinkFile::read_loop()
 //----------------------------------------------------------------------------//
 bool MavlinkFile::send_message(mavlink_message_t &msg)
 {
-    // Should not be called
+    mutex.lock();
+    // TODO write to log file
+    mutex.unlock();
+
     return true;
 }
 //----------------------------------------------------------------------------//

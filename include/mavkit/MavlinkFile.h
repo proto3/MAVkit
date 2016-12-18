@@ -3,6 +3,7 @@
 
 #include <mavkit/MavMessengerInterface.h>
 #include <thread>
+#include <mutex>
 #include <vector>
 #include <string>
 
@@ -18,6 +19,7 @@ public:
 
 private:
     std::thread *reading_thread;
+    std::mutex mutex;
     std::vector<MavMessengerInterface*> listeners;
     void read_loop();
 

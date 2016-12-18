@@ -187,9 +187,11 @@ bool MavlinkSerial::send_message(mavlink_message_t &msg)
 {
     uint16_t length = mavlink_msg_get_send_buffer_length(&msg);
     uint8_t buffer[length];
-
     mavlink_msg_to_send_buffer(buffer, &msg);
+
+    mutex.lock();
     int bytes_sent = write(serial_fd, buffer, length);
+    mutex.unlock();
 
     return length == bytes_sent;
 }
