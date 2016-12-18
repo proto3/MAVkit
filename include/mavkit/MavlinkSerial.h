@@ -2,6 +2,7 @@
 #define MAVLINK_SERIAL_H
 
 #include <mavkit/MavMessengerInterface.h>
+#include <thread>
 #include <string>
 
 class MavlinkSerial : public MavMessengerInterface
@@ -15,11 +16,10 @@ public:
     bool receive_message(mavlink_message_t &msg);
 
 private:
-    mavlink_status_t status;
-    int fd, index, first_free;
+    int serial_fd, storage_pipe[2];
+    std::thread *buffering_thread;
 
-    static const int buffer_length = 256;
-    uint8_t read_buffer[buffer_length];
+    void bufferize();
 };
 
 #endif
