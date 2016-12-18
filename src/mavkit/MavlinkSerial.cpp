@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <stdexcept>
-
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
@@ -110,6 +109,7 @@ MavlinkSerial::MavlinkSerial(std::string port , int baudrate)
 
     std::cout << "Connected to " << port << std::endl;
 
+    reading_thread = new std::thread(&MavlinkSerial::read_loop, this);
     buffering_thread = new std::thread(&MavlinkSerial::bufferize, this);
 }
 //----------------------------------------------------------------------------//
@@ -133,33 +133,34 @@ bool MavlinkSerial::is_valid_tty(const char* path)
     return ret;
 }
 //----------------------------------------------------------------------------//
-bool MavlinkSerial::receive_message(mavlink_message_t &msg)
+void MavlinkSerial::append_listener(MavMessengerInterface* listener)
 {
-    static int index = 0;
-    static int first_free = 0;
-    static mavlink_status_t status;
-    static const size_t length = 256;
-    static uint8_t buffer[length];
-
+    if(listener != NULL)
+        listeners.push_back(listener);
+}
+//----------------------------------------------------------------------------//
+void MavlinkSerial::read_loop()
+{
+    size_t length = 256;
+    uint8_t buffer[length];
+    mavlink_status_t status;
+    mavlink_message_t msg;
     while(true)
     {
-        if(index >= first_free)
-        {
-            index = 0;
-            first_free = read(storage_pipe[0], buffer, length);
-            if(first_free == -1)
-                throw std::logic_error("Unable to read on serial port.");
-        }
+        ssize_t nb_read = read(storage_pipe[0], buffer, length);
+        if(nb_read == -1)
+            throw std::logic_error("Unable to read from storage pipe.");
 
-        char str[8];
-        int n = 0;
-        std::string a;
-        while(index < first_free)
+        for(int i=0;i<nb_read;i++)
         {
-            uint8_t current_byte = buffer[index];
-            index++;
-            if(mavlink_parse_char(MAVLINK_COMM_0, current_byte, &msg, &status))
-                return true;
+            if(mavlink_parse_char(MAVLINK_COMM_0, buffer[i], &msg, &status))
+            {
+                std::vector<MavMessengerInterface*>::iterator it = listeners.begin();
+                for(;it != listeners.end();++it)
+                {
+                    (*it)->send_message(msg);
+                }
+            }
         }
     }
 }
@@ -168,13 +169,13 @@ bool MavlinkSerial::receive_message(mavlink_message_t &msg)
 // so as to avoid buffer overflows if RX buffer is small.
 void MavlinkSerial::bufferize()
 {
-    size_t length = 512;
+    size_t length = 256;
     uint8_t buffer[length];
     while(true)
     {
         ssize_t nb_read = read(serial_fd, buffer, length);
         if(nb_read == -1)
-            throw std::logic_error("Unable to read on serial port.");
+            throw std::logic_error("Unable to read from serial port.");
 
         ssize_t nb_write = write(storage_pipe[1], buffer, nb_read);
         if(nb_write == -1 || nb_write < nb_read)

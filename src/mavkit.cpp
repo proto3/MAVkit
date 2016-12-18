@@ -21,13 +21,14 @@ void process_mavlink_message(mavlink_message_t &message);
 void reader_loop();
 void writer_loop();
 
-MavMessengerInterface* mavlink;
+MavMessengerInterface* master;
+std::vector<MavMessengerInterface*> outputs;
 
 //----------------------------------------------------------------------------//
 void usage()
 {
-    std::cout << "usage: mavkit link" << std::endl;
-    std::cout << "  link: IP address, tty path or log file." << std::endl;
+    std::cout << "usage: mavkit master output1 output2 ..." << std::endl;
+    std::cout << "  master/output: IP address, tty path or log file." << std::endl;
 }
 //----------------------------------------------------------------------------//
 int main(int argc, char* argv[])
@@ -40,15 +41,15 @@ int main(int argc, char* argv[])
 
     if(MavlinkUDP::is_valid_ip(argv[1]))
     {
-        mavlink = new MavlinkUDP(argv[1], 14550, 14551);
+        master = new MavlinkUDP(argv[1], 14550, 14551);
     }
     else if(MavlinkSerial::is_valid_tty(argv[1]))
     {
-        mavlink = new MavlinkSerial(argv[1], 57600);
+        master = new MavlinkSerial(argv[1], 57600);
     }
     else if(MavlinkFile::is_valid_file(argv[1]))
     {
-        mavlink = new MavlinkFile(argv[1]);
+        master = new MavlinkFile(argv[1]);
     }
     else
     {
@@ -56,10 +57,37 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    std::thread read_thread(reader_loop);
-    std::thread write_thread(writer_loop);
+    for(int i=2;i<argc;i++)
+    {
+        if(MavlinkUDP::is_valid_ip(argv[i]))
+        {
+            MavMessengerInterface* mavlink = new MavlinkUDP(argv[i], 14550, 14551);
+            outputs.push_back(mavlink);
+            master->append_listener(mavlink);
+            mavlink->append_listener(master);
+        }
+        else if(MavlinkSerial::is_valid_tty(argv[i]))
+        {
+            MavMessengerInterface* mavlink = new MavlinkSerial(argv[i], 57600);
+            outputs.push_back(mavlink);
+            master->append_listener(mavlink);
+            mavlink->append_listener(master);
+        }
+        else if(MavlinkFile::is_valid_file(argv[i]))
+        {
+            MavMessengerInterface* mavlink = new MavlinkFile(argv[i]);
+            outputs.push_back(mavlink);
+            master->append_listener(mavlink);
+            mavlink->append_listener(master);
+        }
+        else
+        {
+            usage();
+            return 0;
+        }
+    }
 
-    read_thread.join();
+    std::thread write_thread(writer_loop);
     write_thread.join();
 
     return 0;
@@ -70,6 +98,7 @@ void writer_loop()
     mavlink_message_t msg;
     uint8_t buf[BUFFER_LENGTH];
     uint16_t len;
+
     while(true)
     {
         //get uptime in ms
@@ -81,7 +110,7 @@ void writer_loop()
         //MSG1
         mavlink_msg_heartbeat_pack(SYS_ID, COMP_ID, &msg, MAV_TYPE_HELICOPTER, MAV_AUTOPILOT_GENERIC, MAV_MODE_GUIDED_ARMED, 0, MAV_STATE_ACTIVE);
         len = mavlink_msg_to_send_buffer(buf, &msg);
-        mavlink->send_message(msg);
+        master->send_message(msg);
         //
         // //MSG2
         // if(step < 5.0 || step > 10.0)
@@ -102,18 +131,6 @@ void writer_loop()
         // mavlink->send_message(msg);
 
         usleep(1000000);
-    }
-}
-//----------------------------------------------------------------------------//
-void reader_loop()
-{
-    mavlink_message_t msg;
-    while(true)
-    {
-        while(mavlink->receive_message(msg))
-        {
-            process_mavlink_message(msg);
-        }
     }
 }
 //----------------------------------------------------------------------------//

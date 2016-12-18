@@ -2,6 +2,8 @@
 #define MAVLINK_FILE_H
 
 #include <mavkit/MavMessengerInterface.h>
+#include <thread>
+#include <vector>
 #include <string>
 
 class MavlinkFile : public MavMessengerInterface
@@ -12,14 +14,14 @@ public:
 
     static bool is_valid_file(const char* path);
     bool send_message(mavlink_message_t &msg);
-    bool receive_message(mavlink_message_t &msg);
+    void append_listener(MavMessengerInterface* listener);
 
 private:
-    mavlink_status_t status;
-    int fd, index, first_free;
+    std::thread *reading_thread;
+    std::vector<MavMessengerInterface*> listeners;
+    void read_loop();
 
-    static const int buffer_length = 256;
-    uint8_t read_buffer[buffer_length];
+    int fd;
 };
 
 #endif

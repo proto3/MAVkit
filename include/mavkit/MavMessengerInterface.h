@@ -12,9 +12,10 @@ public:
     //false is an has error occured
     virtual bool send_message(mavlink_message_t &msg) = 0;
 
-    //return true when a message is received
-    //false if no message
-    virtual bool receive_message(mavlink_message_t &msg) = 0;
+    //add a MavMessengerInterface to the listener list
+    //listeners are sent any message that is received by this MavMessengerInterface
+    virtual void append_listener(MavMessengerInterface* listener) = 0;
+
 };
 
 #endif

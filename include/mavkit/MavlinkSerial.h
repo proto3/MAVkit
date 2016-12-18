@@ -3,7 +3,9 @@
 
 #include <mavkit/MavMessengerInterface.h>
 #include <thread>
+#include <vector>
 #include <string>
+
 
 class MavlinkSerial : public MavMessengerInterface
 {
@@ -13,12 +15,16 @@ public:
 
     static bool is_valid_tty(const char* path);
     bool send_message(mavlink_message_t &msg);
-    bool receive_message(mavlink_message_t &msg);
+    void append_listener(MavMessengerInterface* listener);
 
 private:
-    int serial_fd, storage_pipe[2];
-    std::thread *buffering_thread;
+    std::thread *reading_thread;
+    std::vector<MavMessengerInterface*> listeners;
+    void read_loop();
 
+    int serial_fd;
+    std::thread *buffering_thread;
+    int storage_pipe[2];
     void bufferize();
 };
 

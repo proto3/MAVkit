@@ -7,8 +7,6 @@
 
 //----------------------------------------------------------------------------//
 MavlinkFile::MavlinkFile(std::string file_path)
-: first_free(0),
-  index(0)
 {
     fd = open(file_path.c_str(), O_RDONLY);
 
@@ -16,6 +14,8 @@ MavlinkFile::MavlinkFile(std::string file_path)
         throw std::logic_error(std::string("cannot open ") + file_path + ": " + strerror(errno));
 
     std::cout << "Connected to " << file_path << std::endl;
+
+    reading_thread = new std::thread(&MavlinkFile::read_loop, this);
 }
 //----------------------------------------------------------------------------//
 MavlinkFile::~MavlinkFile()
@@ -28,27 +28,34 @@ bool MavlinkFile::is_valid_file(const char* path)
     return access(path, F_OK) != -1;
 }
 //----------------------------------------------------------------------------//
-bool MavlinkFile::receive_message(mavlink_message_t &msg)
+void MavlinkFile::append_listener(MavMessengerInterface* listener)
 {
+    if(listener != NULL)
+        listeners.push_back(listener);
+}
+//----------------------------------------------------------------------------//
+void MavlinkFile::read_loop()
+{
+    size_t length = 256;
+    uint8_t buffer[length];
     mavlink_status_t status;
-
+    mavlink_message_t msg;
     while(true)
     {
-        if(index >= first_free)
-        {
-            index = 0;
-            first_free = read(fd, read_buffer, buffer_length);
+        ssize_t nb_read = read(fd, buffer, length);
+        if(nb_read == -1)
+            throw std::logic_error("Unable to read from file.");
 
-            if(first_free == -1)
-                throw std::logic_error("Unable to read file.");
-        }
-
-        while(index < first_free)
+        for(int i=0;i<nb_read;i++)
         {
-            uint8_t current_byte = read_buffer[index];
-            index++;
-            if(mavlink_parse_char(MAVLINK_COMM_0, current_byte, &msg, &status))
-                return true;
+            if(mavlink_parse_char(MAVLINK_COMM_0, buffer[i], &msg, &status))
+            {
+                std::vector<MavMessengerInterface*>::iterator it = listeners.begin();
+                for(;it != listeners.end();++it)
+                {
+                    (*it)->send_message(msg);
+                }
+            }
         }
     }
 }
@@ -56,6 +63,6 @@ bool MavlinkFile::receive_message(mavlink_message_t &msg)
 bool MavlinkFile::send_message(mavlink_message_t &msg)
 {
     // Should not be called
-    return false;
+    return true;
 }
 //----------------------------------------------------------------------------//
