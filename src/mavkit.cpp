@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     }
     else if(MavlinkFile::is_valid_file(argv[1]))
     {
-        master = new MavlinkFile(argv[1]);
+        master = new MavlinkFile(argv[1], "log");
     }
     else
     {
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
         }
         else if(MavlinkFile::is_valid_file(argv[i]))
         {
-            MavMessengerInterface* mavlink = new MavlinkFile(argv[i]);
+            MavMessengerInterface* mavlink = new MavlinkFile(argv[i], "log");
             outputs.push_back(mavlink);
             master->append_listener(mavlink);
             mavlink->append_listener(master);
@@ -87,6 +87,12 @@ int main(int argc, char* argv[])
             return 0;
         }
     }
+
+
+    MavMessengerInterface* mavlink2 = new MavlinkFile("", "log/");
+    outputs.push_back(mavlink2);
+    master->append_listener(mavlink2);
+    mavlink2->append_listener(master);
 
     MavMessengerInterface* mavlink = new MavlinkDisplay();
     outputs.push_back(mavlink);

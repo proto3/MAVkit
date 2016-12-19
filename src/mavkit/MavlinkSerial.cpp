@@ -109,6 +109,10 @@ MavlinkSerial::MavlinkSerial(std::string port , int baudrate)
 
     std::cout << "Connected to " << port << std::endl;
 
+    //Issue in linux kernel, tcflush is not effective immediately after serial port opening
+    usleep(1000000);
+    tcflush(serial_fd, TCIOFLUSH);
+
     reading_thread = new std::thread(&MavlinkSerial::read_loop, this);
     buffering_thread = new std::thread(&MavlinkSerial::bufferize, this);
 }
