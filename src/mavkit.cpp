@@ -1,7 +1,8 @@
 #include <mavkit/MavMessengerInterface.h>
 #include <mavkit/MavlinkUDP.h>
 #include <mavkit/MavlinkSerial.h>
-#include <mavkit/MavlinkFile.h>
+#include <mavkit/MavlinkLogReader.h>
+#include <mavkit/MavlinkLogWriter.h>
 #include <mavkit/MavlinkDisplay.h>
 
 #include <iostream>
@@ -48,9 +49,9 @@ int main(int argc, char* argv[])
     {
         master = new MavlinkSerial(argv[1], 57600);
     }
-    else if(MavlinkFile::is_valid_file(argv[1]))
+    else if(MavlinkLogReader::is_valid_file(argv[1]))
     {
-        master = new MavlinkFile(argv[1], "log");
+        master = new MavlinkLogReader(argv[1]);
     }
     else
     {
@@ -74,9 +75,9 @@ int main(int argc, char* argv[])
             master->append_listener(mavlink);
             mavlink->append_listener(master);
         }
-        else if(MavlinkFile::is_valid_file(argv[i]))
+        else if(MavlinkLogReader::is_valid_file(argv[i]))
         {
-            MavMessengerInterface* mavlink = new MavlinkFile(argv[i], "log");
+            MavMessengerInterface* mavlink = new MavlinkLogReader(argv[i]);
             outputs.push_back(mavlink);
             master->append_listener(mavlink);
             mavlink->append_listener(master);
@@ -88,8 +89,7 @@ int main(int argc, char* argv[])
         }
     }
 
-
-    MavMessengerInterface* mavlink2 = new MavlinkFile("", "log/");
+    MavMessengerInterface* mavlink2 = new MavlinkLogWriter("log/");
     outputs.push_back(mavlink2);
     master->append_listener(mavlink2);
     mavlink2->append_listener(master);

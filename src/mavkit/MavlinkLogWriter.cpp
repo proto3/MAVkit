@@ -1,4 +1,4 @@
-#include <mavkit/MavlinkFile.h>
+#include <mavkit/MavlinkLogWriter.h>
 
 #include <iostream>
 #include <stdexcept>
@@ -10,76 +10,36 @@
 #include <boost/regex.hpp>
 
 //----------------------------------------------------------------------------//
-MavlinkFile::MavlinkFile(std::string in_file, std::string log_path)
+MavlinkLogWriter::MavlinkLogWriter(std::string log_path)
 {
     int log_id = create_log_files(log_path);
 
     std::string out_raw = log_path + "log" + std::to_string(log_id) + ".raw";
     std::string out_ts = log_path + "log" + std::to_string(log_id) + ".ts";
 
-    in_fd = open(in_file.c_str(), O_RDONLY, 0666);
-
     out_raw_fd = open(out_raw.c_str(), O_WRONLY | O_CREAT, 0666);
     out_ts_fd  = open(out_ts.c_str(),  O_WRONLY | O_CREAT, 0666);
 
-    if(in_fd == -1 && (out_raw_fd == -1 || out_ts_fd == -1))
-        throw std::logic_error(std::string("cannot open ") + in_file + " or " + out_raw + " or " + out_ts + ": " + strerror(errno));
+    if(out_raw_fd == -1)
+        throw std::logic_error(std::string("cannot open ") + out_raw + ": " + strerror(errno));
+
+    if(out_ts_fd == -1)
+        throw std::logic_error(std::string("cannot open ") + out_ts + ": " + strerror(errno));
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-
-    if(in_fd != -1)
-    reading_thread = new std::thread(&MavlinkFile::read_loop, this);
 }
 //----------------------------------------------------------------------------//
-MavlinkFile::~MavlinkFile()
+MavlinkLogWriter::~MavlinkLogWriter()
 {
-    close(in_fd);
     close(out_raw_fd);
     close(out_ts_fd);
 }
 //----------------------------------------------------------------------------//
-bool MavlinkFile::is_valid_file(const char* path)
-{
-    return access(path, F_OK) != -1;
-}
+void MavlinkLogWriter::append_listener(MavMessengerInterface* listener)
+{}
 //----------------------------------------------------------------------------//
-void MavlinkFile::append_listener(MavMessengerInterface* listener)
+bool MavlinkLogWriter::send_message(mavlink_message_t &msg)
 {
-    if(listener != NULL)
-        listeners.push_back(listener);
-}
-//----------------------------------------------------------------------------//
-void MavlinkFile::read_loop()
-{
-    size_t length = 256;
-    uint8_t buffer[length];
-    mavlink_status_t status;
-    mavlink_message_t msg;
-    while(true)
-    {
-        ssize_t nb_read = read(in_fd, buffer, length);
-        if(nb_read == -1)
-            throw std::logic_error("Unable to read from file.");
-
-        for(int i=0;i<nb_read;i++)
-        {
-            if(mavlink_parse_char(MAVLINK_COMM_0, buffer[i], &msg, &status))
-            {
-                std::vector<MavMessengerInterface*>::iterator it = listeners.begin();
-                for(;it != listeners.end();++it)
-                {
-                    (*it)->send_message(msg);
-                }
-            }
-        }
-    }
-}
-//----------------------------------------------------------------------------//
-bool MavlinkFile::send_message(mavlink_message_t &msg)
-{
-    if(out_raw_fd == -1 || out_ts_fd == -1)
-        return false;
-
     uint16_t length = mavlink_msg_get_send_buffer_length(&msg);
     uint8_t buffer[length];
     mavlink_msg_to_send_buffer(buffer, &msg);
@@ -97,7 +57,7 @@ bool MavlinkFile::send_message(mavlink_message_t &msg)
     return length == bytes_sent;
 }
 //----------------------------------------------------------------------------//
-int MavlinkFile::create_log_files(std::string path)
+int MavlinkLogWriter::create_log_files(std::string path)
 {
     if(path.back() != '/')
         path += "/";
