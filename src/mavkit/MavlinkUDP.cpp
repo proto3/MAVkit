@@ -20,6 +20,9 @@ uint64_t microsSinceEpoch()
 //----------------------------------------------------------------------------//
 MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port)
 {
+    if(target_port < 0 || target_port > 65535)
+        throw std::logic_error(std::string("Port outside range."));
+
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     memset(&gcAddr, 0, sizeof(struct sockaddr_in));
     gcAddr.sin_family = AF_INET;
@@ -33,6 +36,9 @@ MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port)
 //----------------------------------------------------------------------------//
 MavlinkUDP::MavlinkUDP(int local_port)
 {
+    if(local_port < 0 || local_port > 65535)
+        throw std::logic_error(std::string("Port outside range."));
+
     struct sockaddr_in locAddr;
     memset(&locAddr, 0, sizeof(struct sockaddr_in));
     locAddr.sin_family = AF_INET;

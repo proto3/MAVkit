@@ -69,45 +69,46 @@ MavlinkSerial::MavlinkSerial(std::string port , int baudrate)
     config.c_cc[VTIME] = 0;
 
     // Apply baudrate
+    int baudrate_val;
     switch (baudrate)
     {
         case 9600:
-            baudrate = B9600;
+            baudrate_val = B9600;
             break;
         case 19200:
-            baudrate = B19200;
+            baudrate_val = B19200;
             break;
         case 38400:
-            baudrate = B38400;
+            baudrate_val = B38400;
             break;
         case 57600:
-            baudrate = B57600;
+            baudrate_val = B57600;
             break;
         case 115200:
-            baudrate = B115200;
+            baudrate_val = B115200;
             break;
         case 230400:
-            baudrate = B230400;
+            baudrate_val = B230400;
             break;
         case 460800:
-            baudrate = B460800;
+            baudrate_val = B460800;
             break;
         case 921600:
-            baudrate = B921600;
+            baudrate_val = B921600;
             break;
         default:
-            baudrate = B115200;
+            throw std::logic_error("Cannot handle baudrate : " + std::to_string(baudrate));
             break;
     }
 
-    if(cfsetispeed(&config, baudrate) < 0 || cfsetospeed(&config, baudrate) < 0)
+    if(cfsetispeed(&config, baudrate_val) < 0 || cfsetospeed(&config, baudrate_val) < 0)
         throw std::logic_error("Cannot set baudrate");
 
     // Finally, apply the configuration
     if(tcsetattr(serial_fd, TCSAFLUSH, &config) < 0)
         throw std::logic_error("Cannot set file descriptor configuration");
 
-    std::cout << "Connected to " << port << std::endl;
+    std::cout << "Connected to " << port << " " << baudrate << std::endl;
 
     //Issue in linux kernel, tcflush is not effective immediately after serial port opening
     usleep(1000000);

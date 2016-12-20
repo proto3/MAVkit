@@ -1,39 +1,53 @@
-#include <mavkit/MavMessengerInterface.h>
 #include <mavkit/MavlinkUDP.h>
 #include <mavkit/MavlinkSerial.h>
 #include <mavkit/MavlinkLogReader.h>
 #include <mavkit/MavlinkLogWriter.h>
 #include <mavkit/MavlinkDisplay.h>
-
 #include <iostream>
-#include <chrono>
-#include <fstream>
-#include <cmath>
-#include <unistd.h>
-#include <thread>
 #include <argp.h>
 
-#define BUFFER_LENGTH 512
-#define SYS_ID 1
-#define COMP_ID 2
-
-using namespace std;
-using namespace chrono;
-
-MavMessengerInterface* master;
+MavMessengerInterface* master = NULL;
 std::vector<MavMessengerInterface*> outputs;
 
 //----------------------------------------------------------------------------//
-// void usage()
-// {
-//     std::cout << "usage: mavkit master output1 output2 ..." << std::endl;
-//     std::cout << "  master/output: IP address, tty path or log file." << std::endl;
-// }
+void usage()
+{
+    std::cout << "usage: mavkit master output1 output2 ..." << std::endl;
+    std::cout << "  master/output: IP address, tty path or log file." << std::endl;
+}
+//----------------------------------------------------------------------------//
+void add_messenger(MavMessengerInterface* messenger)
+{
+    if(master == NULL)
+    {
+        master = messenger;
+    }
+    else
+    {
+        outputs.push_back(messenger);
+        master->append_listener(messenger);
+        messenger->append_listener(master);
+    }
+}
+//----------------------------------------------------------------------------//
+bool isdigit(char *str)
+{
+    char c = str[0];
+    int i = 1;
+    while(c != '\0')
+    {
+        if(!isdigit(c))
+        {
+            return false;
+        }
+        c = str[i];
+        i++;
+    }
+    return i > 1;
+}
 //----------------------------------------------------------------------------//
 int main(int argc, char* argv[])
 {
-    bool master_assigned = false;
-
     int c;
     while (true)
     {
@@ -45,23 +59,22 @@ int main(int argc, char* argv[])
             /* These options don’t set a flag.
             We distinguish them by their indices. */
             {"tty",        required_argument, 0, 'a'},
-            {"udp_server", required_argument, 0, 'b'},
-            {"udp_client", required_argument, 0, 'c'},
+            {"udp_client", required_argument, 0, 'b'},
+            {"udp_server", required_argument, 0, 'c'},
             {"file",       required_argument, 0, 'd'},
             {"log",        no_argument,       0, 'e'},
             {"display",    no_argument,       0, 'f'},
             {0, 0, 0, 0}
         };
+
         /* getopt_long stores the option index here. */
         int option_index = 0;
-
         c = getopt_long (argc, argv, "abcdef", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (c == -1)
             break;
 
-        MavMessengerInterface *messenger;
         switch (c)
         {
             // case 0:
@@ -77,102 +90,80 @@ int main(int argc, char* argv[])
             // }
             case 'a':
             {
-                messenger = new MavlinkSerial(optarg, 57600);
-                if(!master_assigned)
+                if(optind + 1 > argc)
                 {
-                    master = messenger;
-                    master_assigned = true;
+                    std::cout << "./mavkit: option \'--tty\' requires two arguments" << std::endl;
+                    exit(0);
+                }
+
+                char* device   = argv[--optind];
+                char* baudrate_str = argv[++optind];
+                optind++;
+                if(isdigit(baudrate_str))
+                {
+                    add_messenger(new MavlinkSerial(device, atoi(baudrate_str)));
                 }
                 else
                 {
-                    outputs.push_back(messenger);
-                    master->append_listener(messenger);
-                    messenger->append_listener(master);
+                    //TODO baudrate not a number
+                    usage();
+                    exit(0);
                 }
                 break;
             }
             case 'b':
             {
-                messenger = new MavlinkUDP(optarg, 14550);
-                if(!master_assigned)
+                if(optind + 1 > argc)
                 {
-                    master = messenger;
-                    master_assigned = true;
+                    std::cout << "./mavkit: option \'--udp_client\' requires two arguments" << std::endl;
+                    exit(0);
+                }
+
+                char* ip       = argv[--optind];
+                char* port_str = argv[++optind];
+                optind++;
+
+                if(isdigit(port_str))
+                {
+                    add_messenger(new MavlinkUDP(ip, atoi(port_str)));
                 }
                 else
                 {
-                    outputs.push_back(messenger);
-                    master->append_listener(messenger);
-                    messenger->append_listener(master);
+                    std::cout << "./mavkit: option \'--upd_client\' port is not a number" << std::endl;
+                    exit(0);
                 }
                 break;
             }
             case 'c':
             {
-                messenger = new MavlinkUDP(atoi(optarg));//TODO test atoi
-                if(!master_assigned)
+                if(isdigit(optarg))
                 {
-                    master = messenger;
-                    master_assigned = true;
+                    add_messenger(new MavlinkUDP(atoi(optarg)));
                 }
                 else
                 {
-                    outputs.push_back(messenger);
-                    master->append_listener(messenger);
-                    messenger->append_listener(master);
+                    std::cout << "./mavkit: option \'--upd_server\' port is not a number" << std::endl;
+                    exit(0);
                 }
                 break;
             }
             case 'd':
             {
-                messenger = new MavlinkLogReader(optarg);
-                if(!master_assigned)
-                {
-                    master = messenger;
-                    master_assigned = true;
-                }
-                else
-                {
-                    outputs.push_back(messenger);
-                    master->append_listener(messenger);
-                    messenger->append_listener(master);
-                }
+                add_messenger(new MavlinkLogReader(optarg));
                 break;
             }
             case 'e':
             {
-                messenger = new MavlinkLogWriter("log/");
-                if(!master_assigned)
-                {
-                    master = messenger;
-                    master_assigned = true;
-                }
-                else
-                {
-                    outputs.push_back(messenger);
-                    master->append_listener(messenger);
-                    messenger->append_listener(master);
-                }
+                add_messenger(new MavlinkLogWriter("log/"));
                 break;
             }
             case 'f':
             {
-                messenger = new MavlinkDisplay();
-                if(!master_assigned)
-                {
-                    master = messenger;
-                    master_assigned = true;
-                }
-                else
-                {
-                    outputs.push_back(messenger);
-                    master->append_listener(messenger);
-                    messenger->append_listener(master);
-                }
+                add_messenger(new MavlinkDisplay());
                 break;
             }
-            // default:
-            //   abort ();
+            default:
+              exit(0);
         }
     }
 
