@@ -18,7 +18,20 @@ uint64_t microsSinceEpoch()
     return micros;
 }
 //----------------------------------------------------------------------------//
-MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port, int local_port)
+MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port)
+{
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+    memset(&gcAddr, 0, sizeof(struct sockaddr_in));
+    gcAddr.sin_family = AF_INET;
+    gcAddr.sin_port = htons(target_port);
+    gcAddr.sin_addr.s_addr = inet_addr(target_ip.c_str());
+
+    std::cout << "to " << target_ip << ":" << target_port << std::endl;
+
+    reading_thread = new std::thread(&MavlinkUDP::read_loop, this);
+}
+//----------------------------------------------------------------------------//
+MavlinkUDP::MavlinkUDP(int local_port)
 {
     struct sockaddr_in locAddr;
     memset(&locAddr, 0, sizeof(struct sockaddr_in));
@@ -41,12 +54,6 @@ MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port, int local_port)
         throw std::logic_error(std::string("error setting nonblocking: ") + strerror(errno));
     }
 
-    memset(&gcAddr, 0, sizeof(struct sockaddr_in));
-    gcAddr.sin_family = AF_INET;
-    gcAddr.sin_port = htons(target_port);
-    gcAddr.sin_addr.s_addr = inet_addr(target_ip.c_str());
-
-    std::cout << "to   " << target_ip << ":" << target_port << std::endl;
     std::cout << "from " << inet_ntoa(locAddr.sin_addr) << ":" << local_port << std::endl;
 
     reading_thread = new std::thread(&MavlinkUDP::read_loop, this);
@@ -67,6 +74,11 @@ void MavlinkUDP::append_listener(MavMessengerInterface* listener)
 {
     if(listener != NULL)
         listeners.push_back(listener);
+}
+//----------------------------------------------------------------------------//
+void MavlinkUDP::join()
+{
+    reading_thread->join();
 }
 //----------------------------------------------------------------------------//
 void MavlinkUDP::read_loop()

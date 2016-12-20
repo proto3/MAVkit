@@ -44,6 +44,11 @@ void MavlinkLogReader::append_listener(MavMessengerInterface* listener)
         listeners.push_back(listener);
 }
 //----------------------------------------------------------------------------//
+void MavlinkLogReader::join()
+{
+    reading_thread->join();
+}
+//----------------------------------------------------------------------------//
 void MavlinkLogReader::read_loop()
 {
     size_t length = 256;

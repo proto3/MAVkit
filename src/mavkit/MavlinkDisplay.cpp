@@ -12,6 +12,9 @@ MavlinkDisplay::~MavlinkDisplay()
 void MavlinkDisplay::append_listener(MavMessengerInterface* listener)
 {}
 //----------------------------------------------------------------------------//
+void MavlinkDisplay::join()
+{}
+//----------------------------------------------------------------------------//
 bool MavlinkDisplay::send_message(mavlink_message_t &msg)
 {
     mutex.lock();

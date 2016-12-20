@@ -15,6 +15,7 @@ public:
     static bool is_valid_file(const char* path);
     bool send_message(mavlink_message_t &msg);
     void append_listener(MavMessengerInterface* listener);
+    void join();
 
 private:
     std::thread *reading_thread;

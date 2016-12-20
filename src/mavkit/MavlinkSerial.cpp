@@ -143,6 +143,11 @@ void MavlinkSerial::append_listener(MavMessengerInterface* listener)
         listeners.push_back(listener);
 }
 //----------------------------------------------------------------------------//
+void MavlinkSerial::join()
+{
+    reading_thread->join();
+}
+//----------------------------------------------------------------------------//
 void MavlinkSerial::read_loop()
 {
     size_t length = 256;

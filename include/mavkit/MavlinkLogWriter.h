@@ -15,6 +15,7 @@ public:
 
     bool send_message(mavlink_message_t &msg);
     void append_listener(MavMessengerInterface* listener);
+    void join();
 
 private:
     std::mutex mutex;

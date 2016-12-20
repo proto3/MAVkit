@@ -38,6 +38,9 @@ MavlinkLogWriter::~MavlinkLogWriter()
 void MavlinkLogWriter::append_listener(MavMessengerInterface* listener)
 {}
 //----------------------------------------------------------------------------//
+void MavlinkLogWriter::join()
+{}
+//----------------------------------------------------------------------------//
 bool MavlinkLogWriter::send_message(mavlink_message_t &msg)
 {
     uint16_t length = mavlink_msg_get_send_buffer_length(&msg);

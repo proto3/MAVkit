@@ -11,12 +11,16 @@
 class MavlinkUDP : public MavMessengerInterface
 {
 public:
-    MavlinkUDP(std::string target_ip, int target_port, int local_port);
+    //Client constructor
+    MavlinkUDP(std::string target_ip, int target_port);
+    //Server constructor
+    MavlinkUDP(int local_port);
     ~MavlinkUDP();
 
     static bool is_valid_ip(const char* ip);
     bool send_message(mavlink_message_t &msg);
     void append_listener(MavMessengerInterface* listener);
+    void join();
 
 private:
     std::thread *reading_thread;
