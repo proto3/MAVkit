@@ -183,6 +183,12 @@ int main(int argc, char* argv[])
         putchar ('\n');
     }
 
+    if(master == NULL)
+    {
+        std::cerr << "Need at least a master messenger interface." << std::endl;
+        exit(0);
+    }
+
     //send Mavlink2 heartbeat to force protocol version
     while(true)
     {
