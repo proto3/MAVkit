@@ -4,6 +4,7 @@
 #include <mavkit/MavlinkLogWriter.h>
 #include <mavkit/MavlinkDisplay.h>
 #include <iostream>
+#include <unistd.h>
 #include <argp.h>
 
 MavMessengerInterface* master = NULL;
@@ -182,7 +183,16 @@ int main(int argc, char* argv[])
         putchar ('\n');
     }
 
-    master->join();
+    //send Mavlink2 heartbeat to force protocol version
+    while(true)
+    {
+        //MSG1
+        mavlink_message_t msg;
+        mavlink_msg_heartbeat_pack(1, 2, &msg, MAV_TYPE_SUBMARINE, MAV_AUTOPILOT_GENERIC, MAV_MODE_PREFLIGHT, 0, MAV_STATE_STANDBY);
+        master->send_message(msg);
+        usleep(1000000);
+    }
+    // master->join();
 
     return 0;
 }
