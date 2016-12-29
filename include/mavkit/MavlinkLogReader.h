@@ -9,7 +9,7 @@
 class MavlinkLogReader : public MavMessengerInterface
 {
 public:
-    MavlinkLogReader(std::string log_file);
+    MavlinkLogReader(std::string log_file, float speed_multiplier);
     ~MavlinkLogReader();
 
     static bool is_valid_file(const char* path);
@@ -22,6 +22,7 @@ private:
     std::vector<MavMessengerInterface*> listeners;
     void read_loop();
 
+    const float _speed_multiplier;
     int create_log_files(std::string path);
     int raw_fd, ts_fd;
     struct timespec start;

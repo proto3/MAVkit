@@ -6,8 +6,14 @@
 #include <unistd.h>
 
 //----------------------------------------------------------------------------//
-MavlinkLogReader::MavlinkLogReader(std::string log_file)
+MavlinkLogReader::MavlinkLogReader(std::string log_file, float speed_multiplier)
+: _speed_multiplier(speed_multiplier)
 {
+    if(speed_multiplier <= 0.0)
+    {
+        throw std::logic_error(std::string("LogReader speed_multiplier cannot be negative or zero"));
+    }
+
     std::string raw_file = log_file + ".raw";
     std::string ts_file = log_file + ".ts";
 
@@ -74,6 +80,8 @@ void MavlinkLogReader::read_loop()
                     uint8_t* p = (uint8_t*)&msg_time;
                     while(r < 8)
                         r += read(ts_fd, p+r, 8);
+
+                    msg_time /= _speed_multiplier;
 
                     struct timespec now;
                     clock_gettime(CLOCK_MONOTONIC_RAW, &now);

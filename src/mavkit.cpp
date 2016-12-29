@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
             }
             case 'd':
             {
-                add_messenger(new MavlinkLogReader(optarg));
+                add_messenger(new MavlinkLogReader(optarg, 1.0));
                 break;
             }
             case 'e':
