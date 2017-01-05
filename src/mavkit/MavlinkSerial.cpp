@@ -8,6 +8,8 @@
 
 //----------------------------------------------------------------------------//
 MavlinkSerial::MavlinkSerial(std::string port , int baudrate)
+: reading_thread(NULL),
+  buffering_thread(NULL)
 {
     int result = pipe(storage_pipe);
     if(result == -1)
@@ -113,9 +115,6 @@ MavlinkSerial::MavlinkSerial(std::string port , int baudrate)
     //Issue in linux kernel, tcflush is not effective immediately after serial port opening
     usleep(1000000);
     tcflush(serial_fd, TCIOFLUSH);
-
-    reading_thread = new std::thread(&MavlinkSerial::read_loop, this);
-    buffering_thread = new std::thread(&MavlinkSerial::bufferize, this);
 }
 //----------------------------------------------------------------------------//
 MavlinkSerial::~MavlinkSerial()
@@ -142,6 +141,15 @@ void MavlinkSerial::append_listener(MavMessengerInterface* listener)
 {
     if(listener != NULL)
         listeners.push_back(listener);
+}
+//----------------------------------------------------------------------------//
+void MavlinkSerial::start()
+{
+    if(reading_thread == NULL && buffering_thread == NULL)
+    {
+        reading_thread = new std::thread(&MavlinkSerial::read_loop, this);
+        buffering_thread = new std::thread(&MavlinkSerial::bufferize, this);
+    }
 }
 //----------------------------------------------------------------------------//
 void MavlinkSerial::join()

@@ -189,6 +189,10 @@ int main(int argc, char* argv[])
         exit(0);
     }
 
+    master->start();
+    for(int i=0;i<outputs.size();i++)
+        outputs[i]->start();
+
     //send Mavlink2 heartbeat to force protocol version
     while(true)
     {

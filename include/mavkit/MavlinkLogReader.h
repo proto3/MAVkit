@@ -15,6 +15,7 @@ public:
     static bool is_valid_file(const char* path);
     bool send_message(mavlink_message_t &msg);
     void append_listener(MavMessengerInterface* listener);
+    void start();
     void join();
 
 private:
@@ -25,7 +26,7 @@ private:
     const float _speed_multiplier;
     int create_log_files(std::string path);
     int raw_fd, ts_fd;
-    struct timespec start;
+    struct timespec start_time;
 };
 
 #endif

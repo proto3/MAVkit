@@ -19,6 +19,8 @@ uint64_t microsSinceEpoch()
 }
 //----------------------------------------------------------------------------//
 MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port)
+: reading_thread(NULL),
+  buffering_thread(NULL)
 {
     int result = pipe(storage_pipe);
     if(result == -1)
@@ -40,6 +42,8 @@ MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port)
 }
 //----------------------------------------------------------------------------//
 MavlinkUDP::MavlinkUDP(int local_port)
+: reading_thread(NULL),
+  buffering_thread(NULL)
 {
     int result = pipe(storage_pipe);
     if(result == -1)
@@ -93,6 +97,15 @@ void MavlinkUDP::append_listener(MavMessengerInterface* listener)
 {
     if(listener != NULL)
         listeners.push_back(listener);
+}
+//----------------------------------------------------------------------------//
+void MavlinkUDP::start()
+{
+    if(reading_thread == NULL && buffering_thread == NULL)
+    {
+        reading_thread = new std::thread(&MavlinkUDP::read_loop, this);
+        buffering_thread = new std::thread(&MavlinkUDP::bufferize, this);
+    }
 }
 //----------------------------------------------------------------------------//
 void MavlinkUDP::join()

@@ -12,6 +12,9 @@ MavlinkDisplay::~MavlinkDisplay()
 void MavlinkDisplay::append_listener(MavMessengerInterface* listener)
 {}
 //----------------------------------------------------------------------------//
+void MavlinkDisplay::start()
+{}
+//----------------------------------------------------------------------------//
 void MavlinkDisplay::join()
 {}
 //----------------------------------------------------------------------------//

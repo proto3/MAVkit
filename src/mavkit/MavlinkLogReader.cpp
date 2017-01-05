@@ -7,7 +7,8 @@
 
 //----------------------------------------------------------------------------//
 MavlinkLogReader::MavlinkLogReader(std::string log_file, float speed_multiplier)
-: _speed_multiplier(speed_multiplier)
+: _speed_multiplier(speed_multiplier),
+ reading_thread(NULL)
 {
     if(speed_multiplier <= 0.0)
     {
@@ -26,9 +27,7 @@ MavlinkLogReader::MavlinkLogReader(std::string log_file, float speed_multiplier)
     if(ts_fd == -1)
         throw std::logic_error(std::string("cannot open ") + ts_file + ": " + strerror(errno));
 
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-
-    reading_thread = new std::thread(&MavlinkLogReader::read_loop, this);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &start_time);
 }
 //----------------------------------------------------------------------------//
 MavlinkLogReader::~MavlinkLogReader()
@@ -48,6 +47,12 @@ void MavlinkLogReader::append_listener(MavMessengerInterface* listener)
 {
     if(listener != NULL)
         listeners.push_back(listener);
+}
+//----------------------------------------------------------------------------//
+void MavlinkLogReader::start()
+{
+    if(reading_thread == NULL)
+        reading_thread = new std::thread(&MavlinkLogReader::read_loop, this);
 }
 //----------------------------------------------------------------------------//
 void MavlinkLogReader::join()
@@ -85,7 +90,7 @@ void MavlinkLogReader::read_loop()
 
                     struct timespec now;
                     clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-                    uint64_t elapsed_time = (now.tv_sec - start.tv_sec) * 1000000 + (now.tv_nsec - start.tv_nsec) / 1000;
+                    uint64_t elapsed_time = (now.tv_sec - start_time.tv_sec) * 1000000 + (now.tv_nsec - start_time.tv_nsec) / 1000;
 
                     if(msg_time > elapsed_time)
                         usleep(msg_time - elapsed_time);

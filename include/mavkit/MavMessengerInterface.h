@@ -16,7 +16,11 @@ public:
     //listeners are sent any message that is received by this MavMessengerInterface
     virtual void append_listener(MavMessengerInterface* listener) = 0;
 
-    //join internal thread of MavMessengerInterface
+    //start internal thread(s) that read interface continuously
+    //no effect if implementation has no thread
+    virtual void start() = 0;
+
+    //join internal thread
     //return immediately if implementation has no thread (ex: logger)
     virtual void join() = 0;
 };

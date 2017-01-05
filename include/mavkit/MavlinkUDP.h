@@ -20,6 +20,7 @@ public:
     static bool is_valid_ip(const char* ip);
     bool send_message(mavlink_message_t &msg);
     void append_listener(MavMessengerInterface* listener);
+    void start();
     void join();
 
 private:
