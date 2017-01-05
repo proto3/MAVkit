@@ -20,6 +20,10 @@ uint64_t microsSinceEpoch()
 //----------------------------------------------------------------------------//
 MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port)
 {
+    int result = pipe(storage_pipe);
+    if(result == -1)
+        throw std::logic_error(std::string("cannot open internal pipe for fast buffering: ") + strerror(errno));
+
     if(target_port < 0 || target_port > 65535)
         throw std::logic_error(std::string("Port outside range."));
 
@@ -32,10 +36,15 @@ MavlinkUDP::MavlinkUDP(std::string target_ip, int target_port)
     std::cout << "to " << target_ip << ":" << target_port << std::endl;
 
     reading_thread = new std::thread(&MavlinkUDP::read_loop, this);
+    buffering_thread = new std::thread(&MavlinkUDP::bufferize, this);
 }
 //----------------------------------------------------------------------------//
 MavlinkUDP::MavlinkUDP(int local_port)
 {
+    int result = pipe(storage_pipe);
+    if(result == -1)
+        throw std::logic_error(std::string("cannot open internal pipe for fast buffering: ") + strerror(errno));
+
     if(local_port < 0 || local_port > 65535)
         throw std::logic_error(std::string("Port outside range."));
 
@@ -63,11 +72,15 @@ MavlinkUDP::MavlinkUDP(int local_port)
     std::cout << "from " << inet_ntoa(locAddr.sin_addr) << ":" << local_port << std::endl;
 
     reading_thread = new std::thread(&MavlinkUDP::read_loop, this);
+    buffering_thread = new std::thread(&MavlinkUDP::bufferize, this);
 }
 //----------------------------------------------------------------------------//
 MavlinkUDP::~MavlinkUDP()
 {
     close(sock);
+    close(storage_pipe[0]);
+    close(storage_pipe[1]);
+    //TODO stop bufferize thread
 }
 //----------------------------------------------------------------------------//
 bool MavlinkUDP::is_valid_ip(const char* ip)
@@ -95,11 +108,9 @@ void MavlinkUDP::read_loop()
     mavlink_message_t msg;
     while(true)
     {
-        socklen_t fromlen = sizeof(struct sockaddr);
-        ssize_t nb_read = recvfrom(sock, (void *)buffer, length, 0, (struct sockaddr *)&gcAddr, &fromlen);
-
+        ssize_t nb_read = read(storage_pipe[0], buffer, length);
         if(nb_read == -1)
-            throw std::logic_error("Unable to read from UDP socket.");
+            throw std::logic_error("Unable to read from storage pipe.");
 
         for(int i=0;i<nb_read;i++)
         {
@@ -112,6 +123,25 @@ void MavlinkUDP::read_loop()
                 }
             }
         }
+    }
+}
+//----------------------------------------------------------------------------//
+// Thread loop to move data from RX buffer to RAM as fast as possible
+// so as to avoid buffer overflows if RX buffer is small.
+void MavlinkUDP::bufferize()
+{
+    size_t length = 256;
+    uint8_t buffer[length];
+    while(true)
+    {
+        socklen_t fromlen = sizeof(struct sockaddr);
+        ssize_t nb_read = recvfrom(sock, (void *)buffer, length, 0, (struct sockaddr *)&gcAddr, &fromlen);
+        if(nb_read == -1)
+            throw std::logic_error("Unable to read from UDP socket.");
+
+        ssize_t nb_write = write(storage_pipe[1], buffer, nb_read);
+        if(nb_write == -1 || nb_write < nb_read)
+            throw std::logic_error("Unable to write to pipe."); //TODO figure out why the write fail instead of throwing error immediately
     }
 }
 //----------------------------------------------------------------------------//

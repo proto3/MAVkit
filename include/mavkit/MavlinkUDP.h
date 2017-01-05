@@ -30,6 +30,9 @@ private:
 
     int sock;
     struct sockaddr_in gcAddr;
+    std::thread *buffering_thread;
+    int storage_pipe[2];
+    void bufferize();
 };
 
 #endif
