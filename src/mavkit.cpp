@@ -1,4 +1,5 @@
 #include <mavkit/MavlinkUDP.h>
+#include <mavkit/MavlinkTCP.h>
 #include <mavkit/MavlinkSerial.h>
 #include <mavkit/MavlinkLogReader.h>
 #include <mavkit/MavlinkLogWriter.h>
@@ -62,9 +63,11 @@ int main(int argc, char* argv[])
             {"tty",        required_argument, 0, 'a'},
             {"udp_client", required_argument, 0, 'b'},
             {"udp_server", required_argument, 0, 'c'},
-            {"file",       required_argument, 0, 'd'},
-            {"log",        no_argument,       0, 'e'},
-            {"display",    no_argument,       0, 'f'},
+            {"tcp_client", required_argument, 0, 'd'},
+            {"tcp_server", required_argument, 0, 'e'},
+            {"file",       required_argument, 0, 'f'},
+            {"log",        no_argument,       0, 'g'},
+            {"display",    no_argument,       0, 'h'},
             {0, 0, 0, 0}
         };
 
@@ -150,15 +153,51 @@ int main(int argc, char* argv[])
             }
             case 'd':
             {
-                add_messenger(new MavlinkLogReader(optarg, 1.0, 0)); // speed_multiplier and start time
+                if(optind + 1 > argc)
+                {
+                    std::cout << "./mavkit: option \'--udp_client\' requires two arguments" << std::endl;
+                    exit(0);
+                }
+
+                char* ip       = argv[--optind];
+                char* port_str = argv[++optind];
+                optind++;
+
+                if(isdigit(port_str))
+                {
+                    add_messenger(new MavlinkTCP(ip, atoi(port_str)));
+                }
+                else
+                {
+                    std::cout << "./mavkit: option \'--upd_client\' port is not a number" << std::endl;
+                    exit(0);
+                }
                 break;
             }
             case 'e':
             {
-                add_messenger(new MavlinkLogWriter("log/"));
+                if(isdigit(optarg))
+                {
+                    add_messenger(new MavlinkTCP(atoi(optarg)));
+                }
+                else
+                {
+                    std::cout << "./mavkit: option \'--upd_server\' port is not a number" << std::endl;
+                    exit(0);
+                }
                 break;
             }
             case 'f':
+            {
+                add_messenger(new MavlinkLogReader(optarg, 1.0, 0)); // speed_multiplier and start time
+                break;
+            }
+            case 'g':
+            {
+                add_messenger(new MavlinkLogWriter("log/"));
+                break;
+            }
+            case 'h':
             {
                 add_messenger(new MavlinkDisplay());
                 break;
