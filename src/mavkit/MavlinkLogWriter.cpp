@@ -55,7 +55,7 @@ bool MavlinkLogWriter::send_message(mavlink_message_t &msg)
     int bytes_sent = write(out_raw_fd, buffer, length);
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-    uint64_t delta_us = (now.tv_sec - start_time.tv_sec) * 1000000 + (now.tv_nsec - start_time.tv_nsec) / 1000;
+    uint64_t delta_us = (uint64_t)(now.tv_sec - start_time.tv_sec) * 1000000 + (now.tv_nsec - start_time.tv_nsec) / 1000;
     write(out_ts_fd, (uint8_t*)&delta_us, 8);
 
     mutex.unlock();
