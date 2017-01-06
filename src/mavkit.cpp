@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
             }
             case 'd':
             {
-                add_messenger(new MavlinkLogReader(optarg, 1.0));
+                add_messenger(new MavlinkLogReader(optarg, 1.0, 0)); // speed_multiplier and start time
                 break;
             }
             case 'e':

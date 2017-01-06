@@ -9,7 +9,7 @@
 class MavlinkLogReader : public MavMessengerInterface
 {
 public:
-    MavlinkLogReader(std::string log_file, float speed_multiplier);
+    MavlinkLogReader(std::string log_file, float speed_multiplier, uint64_t target_time_sec);
     ~MavlinkLogReader();
 
     static bool is_valid_file(const char* path);
@@ -27,6 +27,7 @@ private:
     int create_log_files(std::string path);
     int raw_fd, ts_fd;
     struct timespec start_time;
+    uint64_t _target_time_sec;
 };
 
 #endif
