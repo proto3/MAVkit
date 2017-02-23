@@ -1,5 +1,4 @@
-#ifndef  _MAVLINK_HELPERS_H_
-#define  _MAVLINK_HELPERS_H_
+#pragma once
 
 #include "string.h"
 #include "checksum.h"
@@ -95,7 +94,7 @@ MAVLINK_HELPER uint8_t mavlink_sign_packet(mavlink_signing_t *signing,
  */
 MAVLINK_HELPER uint8_t _mav_trim_payload(const char *payload, uint8_t length)
 {
-	while (length > 0 && payload[length-1] == 0) {
+	while (length > 1 && payload[length-1] == 0) {
 		length--;
 	}
 	return length;
@@ -883,7 +882,7 @@ MAVLINK_HELPER void mavlink_set_proto_version(uint8_t chan, unsigned int version
  *
  * @return 1 for v1, 2 for v2
  */
-MAVLINK_HELPER unsigned int mavlink_get_proto_version(uint8_t chan, unsigned int version)
+MAVLINK_HELPER unsigned int mavlink_get_proto_version(uint8_t chan)
 {
 	mavlink_status_t *status = mavlink_get_channel_status(chan);
 	if ((status->flags & MAVLINK_STATUS_FLAG_OUT_MAVLINK1) > 0) {
@@ -1095,6 +1094,5 @@ MAVLINK_HELPER void _mavlink_send_uart(mavlink_channel_t chan, const char *buf, 
 }
 #endif // MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-#endif /* _MAVLINK_HELPERS_H_ */
 
 
