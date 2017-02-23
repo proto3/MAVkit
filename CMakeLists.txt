@@ -4,6 +4,13 @@ project(mavkit)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 ################################################################################
+#GENERATE MAVLINK HEADERS
+set(MAVLINK_DIR ../include/mavlink)
+set(MAVLINK_VERSION 2.0)
+set(MAVLINK_HEADERS_DIR generated/mavlink_headers)
+execute_process(COMMAND python ${MAVLINK_DIR}/pymavlink/tools/mavgen.py --lang=C --wire-protocol=${MAVLINK_VERSION} --output=${MAVLINK_HEADERS_DIR} ${MAVLINK_DIR}/message_definitions/v1.0/ardupilotmega.xml)
+
+################################################################################
 #PACKAGES
 find_package(Boost REQUIRED COMPONENTS regex)
 find_package(Threads REQUIRED)
@@ -12,6 +19,7 @@ find_package(Threads REQUIRED)
 #INCLUDES
 include_directories(
     include
+    ${CMAKE_BINARY_DIR}/generated
     ${Boost_INCLUDE_DIRS}
 )
 
