@@ -114,5 +114,5 @@ You can combine almost as many messengers as you want in command line.
 Example :
 
 ```Shell
-./mavkit --tty /dev/ttyACM0 57600 --upd_server 14550 --display --log --tcp_client 127.0.0.1 14551
+./mavkit --tty /dev/ttyACM0 57600 --udp_server 14550 --display --log --tcp_client 127.0.0.1 14551
 ```

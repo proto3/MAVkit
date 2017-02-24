@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
-                    std::cout << "./mavkit: option \'--upd_client\' port is not a number" << std::endl;
+                    std::cout << "./mavkit: option \'--udp_client\' port is not a number" << std::endl;
                     exit(0);
                 }
                 break;
@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
-                    std::cout << "./mavkit: option \'--upd_server\' port is not a number" << std::endl;
+                    std::cout << "./mavkit: option \'--udp_server\' port is not a number" << std::endl;
                     exit(0);
                 }
                 break;
@@ -169,7 +169,7 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
-                    std::cout << "./mavkit: option \'--upd_client\' port is not a number" << std::endl;
+                    std::cout << "./mavkit: option \'--udp_client\' port is not a number" << std::endl;
                     exit(0);
                 }
                 break;
@@ -182,7 +182,7 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
-                    std::cout << "./mavkit: option \'--upd_server\' port is not a number" << std::endl;
+                    std::cout << "./mavkit: option \'--udp_server\' port is not a number" << std::endl;
                     exit(0);
                 }
                 break;
