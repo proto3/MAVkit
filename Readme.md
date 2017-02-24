@@ -1,6 +1,28 @@
 # MAVKit
 
-## build
+## Introduction
+
+MAVkit is a C++ toolbox for **MAVLink 2.0** in command line.
+
+ It can **display**, **redirect**, **broadcast**, **log**, **replay** data from and to different types of interface (**Serial**, **UDP**, **TCP**, **File**).
+
+MAVkit is also a framework for MAVLink programmers.
+It is built on a modular architecture where each module can be used independently inside other projects.
+In that case, it provides a simple MAVLink block that can be replaced according to communication hardware.
+
+Designed with low latency in mind, it keeps IO buffers safe from overflows (leading to data loss) by using a dual thread processing loop per interface (fast read and process).
+
+## Build
+
+### Submodule update
+>Note : Be sure to use the following recursive command, there is two submodule levels in mavlink.
+
+```Shell
+git submodule update --init --recursive
+```
+
+### Compilation
+***Dependencies*** : Boost + MAVLink usual dependencies
 
 ```shell
 mkdir build
@@ -11,22 +33,23 @@ make
 
 ## How it works ?
 
-Mavkit is organised in modules called interfaces. An interface can receive and send messages to other interfaces in a fully concurrent way.
+Mavkit is organised in modules called **messengers**. A messenger can receive and send messages to others in a fully concurrent way.
 
-Each interface can be either a serial link, an UDP socket, a log file,...
+Each messenger can be either a serial link, an UDP socket, a log file,...
 
-you have to specify at least one interface that will be called ***master interface***.
-This particular one will be duplex connected to every other interface created then.
-On the contrary, secondary interfaces won't be connected between them.
+you have to specify at least one messenger (the first) for the role of **master**.
+This particular one will be duplex connected to every other messenger created then.
+On the contrary, secondary messengers won't be connected between them.
 
-Here is an example of two mavkit instances, composed of respectively 4 and 2 interfaces and linked between them through UDP. Note that masters are connected to all other interfaces, while those are not linked between them.
+Here is an example of two MAVkit instances, composed of respectively 4 and 2 messengers and linked between them through UDP. Note that masters are connected to all other messengers, while those are not linked between them.
 
 <img src="/docs/mavkit_interfaces.jpg" />
 
-## how to use it ?
+## How to use it ?
 
-Once you've built it, you can run MAVKit from command line by specifying interfaces one after the other.
-The first interface will take on the role of master.
+Once you've built it, you can run MAVKit from command line by specifying messengers one after the other.
+
+The first messenger will take on the role of master.
 
 ### Serial
 ***Arguments :***
@@ -86,7 +109,9 @@ Output messages to stdout.
 `--display`
 
 ---
-You can combine almost as many interfaces as you want with the power of command line.
+You can combine almost as many messengers as you want in command line.
+
+Example :
 
 ```Shell
 ./mavkit --tty /dev/ttyACM0 57600 --upd_server 14550 --display --log --tcp_client 127.0.0.1 14551
