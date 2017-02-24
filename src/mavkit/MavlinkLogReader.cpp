@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 //----------------------------------------------------------------------------//
-MavlinkLogReader::MavlinkLogReader(std::string log_file, float speed_multiplier, uint64_t target_time_sec)
+MavlinkLogReader::MavlinkLogReader(std::string log_file, float speed_multiplier, float target_time_sec)
 : _speed_multiplier(speed_multiplier),
   reading_thread(NULL),
   _target_time_sec(target_time_sec)
@@ -98,7 +98,6 @@ void MavlinkLogReader::read_loop()
 
                     if(msg_time > _target_time_sec * 1000000)
                     {
-                        std::cout << (float)msg_time / 1000000 << " seconds"<< std::endl;
                         if(msg_time_mult > elapsed_time)
                             usleep(msg_time_mult - elapsed_time);
                     }
