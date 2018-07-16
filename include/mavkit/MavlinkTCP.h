@@ -29,6 +29,14 @@ private:
     std::vector<MavMessengerInterface*> listeners;
     void read_loop();
 
+    bool connect_client();
+    void connect_server();
+    void reconnect();
+    bool is_server;
+    bool connected;
+    std::string _target_ip;
+    int _target_port;
+    int csock;
     int sock;
     struct sockaddr_in gcAddr;
 };

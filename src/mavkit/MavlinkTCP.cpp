@@ -8,30 +8,25 @@
 
 //----------------------------------------------------------------------------//
 MavlinkTCP::MavlinkTCP(std::string target_ip, int target_port)
-: reading_thread(NULL)
+: is_server(false), reading_thread(NULL), _target_ip(target_ip), _target_port(target_port)
 {
-    if(target_port < 0 || target_port > 65535)
+    if(_target_port < 0 || _target_port > 65535)
         throw std::logic_error(std::string("Port outside range."));
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    memset(&gcAddr, 0, sizeof(struct sockaddr_in));
-    gcAddr.sin_family = AF_INET;
-    gcAddr.sin_port = htons(target_port);
-    gcAddr.sin_addr.s_addr = inet_addr(target_ip.c_str());
-
-    if(connect(sock, (struct sockaddr*) &gcAddr, sizeof(struct sockaddr)) == -1)
+    if(!connect_client())
     {
         std::cerr << strerror(errno) << std::endl;
         exit(-1);
     }
 
-    std::cout << "to " << target_ip << ":" << target_port << std::endl;
+    std::cout << "to " << _target_ip << ":" << _target_port << std::endl;
 
+    connected = true;
     reading_thread = new std::thread(&MavlinkTCP::read_loop, this);
 }
 //----------------------------------------------------------------------------//
 MavlinkTCP::MavlinkTCP(int local_port)
-: reading_thread(NULL)
+: is_server(true), reading_thread(NULL)
 {
     if(local_port < 0 || local_port > 65535)
         throw std::logic_error(std::string("Port outside range."));
@@ -43,7 +38,7 @@ MavlinkTCP::MavlinkTCP(int local_port)
     locAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     //bind socket to local_port
-    int csock = socket(AF_INET, SOCK_STREAM, 0);
+    csock = socket(AF_INET, SOCK_STREAM, 0);
     if(bind(csock,(struct sockaddr*)&locAddr, sizeof(struct sockaddr)) == -1)
     {
         close(csock);
@@ -56,11 +51,19 @@ MavlinkTCP::MavlinkTCP(int local_port)
         exit(errno);
     }
 
+    connect_server();
+
+    std::cout << "from " << inet_ntoa(locAddr.sin_addr) << ":" << local_port << std::endl;
+
+    connected = true;
+    reading_thread = new std::thread(&MavlinkTCP::read_loop, this);
+}
+//----------------------------------------------------------------------------//
+void MavlinkTCP::connect_server()
+{
     struct sockaddr_in csin;
     memset(&csin, 0, sizeof(struct sockaddr_in));
-
     socklen_t sinsize = sizeof(csin);
-
     sock = accept(csock, (struct sockaddr*)&csin, &sinsize);
 
     if(sock == -1)
@@ -75,14 +78,45 @@ MavlinkTCP::MavlinkTCP(int local_port)
         close(sock);
         throw std::logic_error(std::string("error setting nonblocking: ") + strerror(errno));
     }
+}
+//----------------------------------------------------------------------------//
+bool MavlinkTCP::connect_client()
+{
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    memset(&gcAddr, 0, sizeof(struct sockaddr_in));
+    gcAddr.sin_family = AF_INET;
+    gcAddr.sin_port = htons(_target_port);
+    gcAddr.sin_addr.s_addr = inet_addr(_target_ip.c_str());
 
-    std::cout << "from " << inet_ntoa(locAddr.sin_addr) << ":" << local_port << std::endl;
-
-    reading_thread = new std::thread(&MavlinkTCP::read_loop, this);
+    return connect(sock, (struct sockaddr*) &gcAddr, sizeof(struct sockaddr)) == 0;
+}
+//----------------------------------------------------------------------------//
+void MavlinkTCP::reconnect()
+{
+    if(is_server)
+    {
+        std::cout << "[TCP] Disconnected.\n[TCP] server listening for connection..."<< std::endl;
+        connect_server();
+    }
+    else
+    {
+        std::cout << "[TCP] Disconnected."<< std::endl;
+        while(!connect_client())
+        {
+            std::cout << "[TCP] Connection retry..."<< std::endl;
+            usleep(1000000);
+        }
+    }
+    connected = true;
+    std::cout << "[TCP] Connected."<< std::endl;
 }
 //----------------------------------------------------------------------------//
 MavlinkTCP::~MavlinkTCP()
 {
+    if(is_server)
+    {
+        close(csock);
+    }
     close(sock);
 }
 //----------------------------------------------------------------------------//
@@ -117,6 +151,12 @@ void MavlinkTCP::read_loop()
     mavlink_message_t msg;
     while(true)
     {
+        if(!connected)
+        {
+            close(sock);
+            reconnect();
+        }
+
         socklen_t fromlen = sizeof(struct sockaddr);
         ssize_t nb_read = recvfrom(sock, (void *)buffer, length, 0, (struct sockaddr *)&gcAddr, &fromlen);
 
@@ -140,13 +180,16 @@ void MavlinkTCP::read_loop()
 bool MavlinkTCP::send_message(mavlink_message_t &msg)
 {
     uint8_t buf[512];
-    ssize_t bytes_sent;
+    ssize_t bytes_sent = 0;
     uint16_t len;
     len = mavlink_msg_to_send_buffer(buf, &msg);
 
     mutex.lock();
-    //TODO handle SIGPIPE to manage closed socket (and maybe go back to listening for servers)
-    bytes_sent = sendto(sock, buf, len, 0, (struct sockaddr*)&gcAddr, sizeof(struct sockaddr_in));
+    if(connected)
+    {
+        bytes_sent = sendto(sock, buf, len, MSG_NOSIGNAL, (struct sockaddr*)&gcAddr, sizeof(struct sockaddr_in));
+        connected = (bytes_sent != -1);
+    }
     mutex.unlock();
 
     return len == bytes_sent;
